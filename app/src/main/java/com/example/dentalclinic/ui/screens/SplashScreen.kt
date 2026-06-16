@@ -15,24 +15,36 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dentalclinic.R
 import com.example.dentalclinic.data.AppSettings
+import com.example.dentalclinic.data.api.PatientParser
+import com.example.dentalclinic.data.api.RetrofitClient
 import com.example.dentalclinic.ui.components.FunnyToothMascot
 import com.example.dentalclinic.ui.theme.DentalTeal
 import com.example.dentalclinic.ui.theme.DentalTealDark
+import com.google.gson.Gson
 import kotlinx.coroutines.delay
 
 @Composable
 fun SplashScreen(onTimeout: (Boolean) -> Unit) {
     LaunchedEffect(Unit) {
-        // Try to fetch current patient during splash
-        val response = try {
-            com.example.dentalclinic.data.api.RetrofitClient.service.getCurrentPatient()
-        } catch (e: Exception) {
-            null
-        }
+        val hasToken = AppSettings.jwtToken != null
+        val gson = Gson()
+
+        // Try to fetch current patient during splash (only if we have a token)
+        val response = if (hasToken) {
+            try {
+                RetrofitClient.service.getCurrentPatient()
+            } catch (e: Exception) {
+                null
+            }
+        } else null
 
         val isLoggedIn = if (response?.isSuccessful == true) {
-            AppSettings.savePatient(response.body())
-            true
+            val rawBody = response.body()?.string()
+            if (!rawBody.isNullOrBlank()) {
+                val p = PatientParser.parsePatient(rawBody, gson)
+                if (p != null) AppSettings.savePatient(p)
+            }
+            AppSettings.loggedInPatient != null
         } else {
             // Check if we have a persisted patient even if API fails (offline mode)
             AppSettings.loggedInPatient != null

@@ -20,7 +20,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dentalclinic.R
 import com.example.dentalclinic.data.AppSettings
-import com.example.dentalclinic.data.fake.FakeDentalData
 import com.example.dentalclinic.ui.components.*
 import com.example.dentalclinic.ui.theme.*
 
@@ -43,9 +42,9 @@ fun HomeScreen(
     var visible by remember { mutableStateOf(value = false) }
     LaunchedEffect(Unit) { visible = true }
 
-    // DYNAMIC DISPLAY NAME - Strictly check API data first
+    // DYNAMIC DISPLAY NAME - Use API data first, NEVER fall back to FakeDentalData
     val displayName = remember(patient) {
-        if (patient == null) return@remember null
+        if (patient == null) return@remember "User"
 
         // Priority 1: FullName field
         if (!patient.fullName.isNullOrBlank()) return@remember patient.fullName
@@ -57,7 +56,7 @@ fun HomeScreen(
         // Priority 3: Email prefix (only if we have literally nothing else)
         if (!patient.email.isNullOrBlank()) return@remember patient.email.split("@")[0]
 
-        null
+        "User"
     }
 
     Column(
@@ -67,7 +66,7 @@ fun HomeScreen(
             .verticalScroll(rememberScrollState()),
     ) {
         DentalHeader(
-            title = displayName ?: FakeDentalData.patient.name,
+            title = displayName,
             subtitle = stringResource(R.string.good_morning),
             trailing = {
                 Text(

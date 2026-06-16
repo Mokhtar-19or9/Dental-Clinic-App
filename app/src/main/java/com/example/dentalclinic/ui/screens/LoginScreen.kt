@@ -21,6 +21,7 @@ import com.example.dentalclinic.data.AppSettings
 import com.example.dentalclinic.data.api.PatientResponse
 import com.example.dentalclinic.data.api.RetrofitClient
 import com.example.dentalclinic.data.api.UserLoginRequest
+import com.google.gson.Gson
 import com.example.dentalclinic.ui.components.FunnyToothMascot
 import com.example.dentalclinic.ui.components.PrimaryDentalButton
 import com.example.dentalclinic.ui.theme.DentalTeal
@@ -126,46 +127,73 @@ fun LoginScreen(
                         scope.launch {
                             isLoading = true
                             try {
-                                val loginRequest = UserLoginRequest(
-                                    email = email,
-                                    userName = email,
-                                    password = password
-                                )
-                                
-                                val patientLoginResponse = RetrofitClient.service.patientLogin(loginRequest)
-                                val accountLoginResponse = if (!patientLoginResponse.isSuccessful) {
-                                    RetrofitClient.service.login(loginRequest)
-                                } else null
+                                val gson = Gson()
 
-                                val loginSuccessful = patientLoginResponse.isSuccessful || (accountLoginResponse?.isSuccessful == true)
+                                // Save email from form as fallback patient data immediately
+                                val nameFromEmail = email.split("@")[0]
+                                AppSettings.savePatient(PatientResponse(
+                                    id = "",
+                                    fullName = nameFromEmail,
+                                    email = email
+                                ))
 
-                                if (loginSuccessful) {
-                                    // RECOVER REAL DATA
-                                    val userData = accountLoginResponse?.body()?.firstOrNull()
-                                    if (userData != null) {
-                                        AppSettings.savePatient(PatientResponse(
-                                            id = userData.id,
-                                            firstName = userData.firstName,
-                                            lastName = userData.lastName,
-                                            fullName = userData.fullName,
-                                            email = userData.email,
-                                            age = null,
-                                            phone = userData.phoneNumber
-                                        ))
-                                    }
+                                // Try Account/Login with userName+password (same as website)
+                                val loginPayload = mapOf("userName" to email, "password" to password)
+                                val accountLoginResponse = RetrofitClient.service.loginRaw(loginPayload)
+                                var loginSucceeded = accountLoginResponse.isSuccessful
 
-                                    // Force fetch latest from API
-                                    try {
-                                        val patientResponse = RetrofitClient.service.getCurrentPatient()
-                                        if (patientResponse.isSuccessful && patientResponse.body() != null) {
-                                            AppSettings.savePatient(patientResponse.body())
-                                        }
-                                    } catch (_: Exception) {}
-
-                                    onLoginSuccess()
-                                } else {
-                                    snackbarHostState.showSnackbar("Invalid email or password")
+                                if (loginSucceeded) {
+                                    val rawBody = accountLoginResponse.body()?.string()
+                                    val token = com.example.dentalclinic.data.api.PatientParser.parseToken(rawBody, gson)
+                                    if (token != null) AppSettings.saveToken(token)
                                 }
+
+                                // Fallback: try Patient/login with the typed request
+                                if (!loginSucceeded) {
+                                    val typedRequest = UserLoginRequest(
+                                        email = email,
+                                        userName = email,
+                                        password = password
+                                    )
+                                    val patientLoginResponse = RetrofitClient.service.patientLogin(typedRequest)
+                                    loginSucceeded = patientLoginResponse.isSuccessful
+                                    if (loginSucceeded) {
+                                        val rawBody = patientLoginResponse.body()?.string()
+                                        val token = com.example.dentalclinic.data.api.PatientParser.parseToken(rawBody, gson)
+                                        if (token != null) AppSettings.saveToken(token)
+                                    }
+                                }
+
+                                if (!loginSucceeded) {
+                                    val errorBody = if (!accountLoginResponse.isSuccessful) {
+                                        accountLoginResponse.errorBody()?.string()
+                                    } else null
+                                    snackbarHostState.showSnackbar(errorBody ?: "Invalid email or password")
+                                    isLoading = false
+                                    return@launch
+                                }
+
+                                try {
+                                    val patientResponse = RetrofitClient.service.getCurrentPatient()
+                                    if (patientResponse.isSuccessful) {
+                                        patientResponse.body()?.string()?.let { raw ->
+                                            val p = com.example.dentalclinic.data.api.PatientParser.parsePatient(raw, gson)
+                                            if (p != null) AppSettings.savePatient(p)
+                                        }
+                                    }
+                                } catch (_: Exception) {}
+
+                                // Ensure fallback patient data is always set before navigation
+                                if (AppSettings.loggedInPatient?.fullName.isNullOrBlank()) {
+                                    val nameFromEmail = email.split("@")[0]
+                                    AppSettings.savePatient(PatientResponse(
+                                        id = "",
+                                        fullName = nameFromEmail,
+                                        email = email
+                                    ))
+                                }
+
+                                onLoginSuccess()
                             } catch (e: Exception) {
                                 snackbarHostState.showSnackbar("Connection error: ${e.localizedMessage}")
                             } finally {
@@ -193,3 +221,4 @@ fun LoginScreen(
         }
     }
 }
+

@@ -33,16 +33,18 @@ fun ProfileScreen(
     onLogout: () -> Unit = {}
 ) {
     val apiPatient = AppSettings.loggedInPatient
-    val fakePatient = FakeDentalData.patient
     
     val name = if (apiPatient != null) {
-        "${apiPatient.firstName ?: ""} ${apiPatient.lastName ?: ""}".trim()
+        if (!apiPatient.fullName.isNullOrBlank()) apiPatient.fullName
+        else "${apiPatient.firstName ?: ""} ${apiPatient.lastName ?: ""}".trim().ifBlank { 
+            apiPatient.email?.split("@")?.firstOrNull() ?: "User"
+        }
     } else {
-        fakePatient.name
+        "User"
     }
-    val age = apiPatient?.age?.toString() ?: fakePatient.age.toString()
-    val phone = apiPatient?.phone ?: fakePatient.phone
-    val email = apiPatient?.email ?: fakePatient.email
+    val age = if (apiPatient?.age != null && apiPatient.age != 0) "${apiPatient.age} years" else "N/A"
+    val phone = if (!apiPatient?.phone.isNullOrBlank()) apiPatient?.phone!! else "N/A"
+    val email = if (!apiPatient?.email.isNullOrBlank()) apiPatient?.email!! else "N/A"
 
     Column(
         modifier = modifier
@@ -55,18 +57,18 @@ fun ProfileScreen(
             SectionHeader(stringResource(R.string.personal_information))
             Spacer(Modifier.height(10.dp))
             DentalCard(Modifier.fillMaxWidth()) {
-                ProfileLine(stringResource(R.string.age), "$age years")
+                ProfileLine(stringResource(R.string.age), age)
                 ProfileLine(stringResource(R.string.phone), phone)
                 ProfileLine(stringResource(R.string.email), email)
-                ProfileLine(stringResource(R.string.insurance), fakePatient.insurance)
+                ProfileLine(stringResource(R.string.insurance), "N/A")
             }
             Spacer(Modifier.height(18.dp))
             SectionHeader(stringResource(R.string.medical_information))
             Spacer(Modifier.height(10.dp))
             DentalCard(Modifier.fillMaxWidth()) {
-                ProfileLine(stringResource(R.string.blood_type), "O+")
+                ProfileLine(stringResource(R.string.blood_type), apiPatient?.bloodType ?: "O+")
                 ProfileLine(stringResource(R.string.allergies), stringResource(R.string.penicillin))
-                ProfileLine(stringResource(R.string.medical_conditions), stringResource(R.string.asthma))
+                ProfileLine(stringResource(R.string.medical_conditions), apiPatient?.chronicDiseases ?: stringResource(R.string.asthma))
             }
             Spacer(Modifier.height(18.dp))
             SectionHeader(stringResource(R.string.medical_history_summary))
@@ -85,7 +87,7 @@ fun ProfileScreen(
             SectionHeader(stringResource(R.string.emergency_contact))
             Spacer(Modifier.height(10.dp))
             DentalCard(Modifier.fillMaxWidth()) {
-                Text(fakePatient.emergencyContact, fontWeight = FontWeight.SemiBold, color = DentalTeal)
+                Text("N/A", fontWeight = FontWeight.SemiBold, color = DentalTeal)
                 Text(stringResource(R.string.available_for_urgent_updates), color = DentalMuted)
             }
             

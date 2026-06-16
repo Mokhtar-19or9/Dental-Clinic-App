@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dentalclinic.R
 import com.example.dentalclinic.data.AppSettings
+import com.example.dentalclinic.data.api.PatientParser
 import com.example.dentalclinic.data.api.PatientRegisterRequest
 import com.example.dentalclinic.data.api.RetrofitClient
 import com.example.dentalclinic.ui.components.FunnyToothMascot
@@ -208,10 +209,15 @@ fun SignUpScreen(onSignUpSuccess: () -> Unit, onLoginClick: () -> Unit) {
                                     AppSettings.savePatient(fallbackPatient)
 
                                     // After successful registration, try to fetch the full patient details
-                                    val patientResponse = RetrofitClient.service.getCurrentPatient()
-                                    if (patientResponse.isSuccessful) {
-                                        AppSettings.savePatient(patientResponse.body())
-                                    }
+                                    try {
+                                        val patientResponse = RetrofitClient.service.getCurrentPatient()
+                                        if (patientResponse.isSuccessful) {
+                                            patientResponse.body()?.string()?.let { raw ->
+                                                val p = PatientParser.parsePatient(raw, com.google.gson.Gson())
+                                                if (p != null) AppSettings.savePatient(p)
+                                            }
+                                        }
+                                    } catch (_: Exception) {}
                                     onSignUpSuccess()
                                 } else {
                                     val errorBody = response.errorBody()?.string() ?: "Unknown error"
@@ -240,3 +246,5 @@ fun SignUpScreen(onSignUpSuccess: () -> Unit, onLoginClick: () -> Unit) {
         }
     }
 }
+
+
