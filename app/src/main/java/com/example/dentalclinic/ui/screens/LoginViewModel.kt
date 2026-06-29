@@ -9,7 +9,6 @@ import com.example.dentalclinic.data.AppSettings
 import com.example.dentalclinic.data.api.PatientParser
 import com.example.dentalclinic.data.api.PatientResponse
 import com.example.dentalclinic.data.api.RetrofitClient
-import com.example.dentalclinic.data.api.UserLoginRequest
 import com.google.gson.Gson
 import kotlinx.coroutines.launch
 
@@ -40,34 +39,46 @@ class LoginViewModel : ViewModel() {
                 var successfulLoginBody: String? = null
 
                 if (loginSucceeded) {
-                    successfulLoginBody = accountLoginResponse.body()?.string()
-                    val token = PatientParser.parseToken(successfulLoginBody, gson)
+                    // 1) Check response headers for JWT
+                    val headers = accountLoginResponse.headers().toMultimap()
+                    var token = PatientParser.parseTokenFromHeaders(headers)
+                    // 2) Fall back to body parsing
+                    if (token == null) {
+                        successfulLoginBody = accountLoginResponse.body()?.string()
+                        token = PatientParser.parseToken(successfulLoginBody, gson)
+                        // 3) If body is [UserResponse] array, extract patient info
+                        if (successfulLoginBody != null) {
+                            PatientParser.parseUserResponseBody(successfulLoginBody, gson)?.let { p ->
+                                AppSettings.savePatient(p)
+                            }
+                        }
+                    }
                     if (token != null) AppSettings.saveToken(token)
                 }
 
-                // Fallback: try Patient/login with the typed request
+                // Fallback: try Patient/login with email+password (patient endpoint)
                 if (!loginSucceeded) {
-                    val typedRequest = UserLoginRequest(
-                        email = email,
-                        userName = email,
-                        password = password
-                    )
-                    val patientLoginResponse = RetrofitClient.service.patientLogin(typedRequest)
+                    val loginReq = mapOf("email" to email, "password" to password)
+                    val patientLoginResponse = RetrofitClient.service.patientLoginRaw(loginReq)
                     loginSucceeded = patientLoginResponse.isSuccessful
                     if (loginSucceeded) {
                         successfulLoginBody = patientLoginResponse.body()?.string()
-                        val token = PatientParser.parseToken(successfulLoginBody, gson)
+                        val headers = patientLoginResponse.headers().toMultimap()
+                        var token = PatientParser.parseTokenFromHeaders(headers)
+                        if (token == null) {
+                            token = PatientParser.parseToken(successfulLoginBody, gson)
+                        }
                         if (token != null) AppSettings.saveToken(token)
+                    } else {
+                        val errorBody = if (!accountLoginResponse.isSuccessful) {
+                            accountLoginResponse.errorBody()?.string()
+                        } else {
+                            patientLoginResponse.errorBody()?.string()
+                        }
+                        loginError = parseLoginError(errorBody, gson)
+                        isLoading = false
+                        return@launch
                     }
-                }
-
-                if (!loginSucceeded) {
-                    val errorBody = if (!accountLoginResponse.isSuccessful) {
-                        accountLoginResponse.errorBody()?.string()
-                    } else null
-                    loginError = errorBody ?: "Invalid email or password"
-                    isLoading = false
-                    return@launch
                 }
 
                 // 1. Try to extract patient from login response (some APIs return user info here)
@@ -100,5 +111,30 @@ class LoginViewModel : ViewModel() {
                 isLoading = false
             }
         }
+    }
+
+    private fun parseLoginError(errorBody: String?, gson: Gson): String {
+        if (errorBody.isNullOrBlank()) return "Invalid email or password"
+
+        // Try extracting message from common JSON error formats
+        try {
+            val map = gson.fromJson(errorBody, Map::class.java)
+            for (key in listOf("message", "Message", "title", "Title", "error", "Error", "detail", "Detail")) {
+                val value = map?.get(key)?.toString()
+                if (!value.isNullOrBlank()) return value
+            }
+            // Nested errors object (e.g. ASP.NET errors)
+            val errors = map?.get("errors")
+            if (errors is Map<*, *>) {
+                for ((_, v) in errors) {
+                    if (v is List<*>) {
+                        val first = v.firstOrNull()?.toString()
+                        if (!first.isNullOrBlank()) return first
+                    }
+                }
+            }
+        } catch (_: Exception) {}
+
+        return errorBody.replace("\"", "").trim()
     }
 }

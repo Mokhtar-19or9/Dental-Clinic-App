@@ -19,14 +19,17 @@ class SignUpViewModel : ViewModel() {
             isLoading = true
             signUpError = null
             try {
+                val trimmedName = fullName.trim()
+                val generatedUsername = trimmedName.lowercase().replace(Regex("[^a-z0-9]"), "").take(20)
+                
                 val response = RetrofitClient.service.registerPatient(
                     PatientRegisterRequest(
-                        fullName = fullName,
-                        email = email,
-                        userName = email,
+                        fullName = trimmedName,
+                        userName = generatedUsername,
+                        email = email.trim(),
                         password = password,
                         confirmPassword = confirmPassword,
-                        phoneNumber = phoneNumber,
+                        phoneNumber = phoneNumber.trim(),
                         age = age
                     )
                 )

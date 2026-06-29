@@ -2,13 +2,13 @@ package com.example.dentalclinic.data
 
 import android.content.Context
 import android.content.SharedPreferences
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import com.example.dentalclinic.ui.components.MascotStyle
 import com.example.dentalclinic.data.model.Appointment
 import com.example.dentalclinic.data.api.PatientResponse
+import com.example.dentalclinic.ui.screens.ChatMessage
 import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 
 object AppSettings {
     private var prefs: SharedPreferences? = null
@@ -20,6 +20,7 @@ object AppSettings {
     var bookedAppointment by mutableStateOf<Appointment?>(value = null)
     var loggedInPatient by mutableStateOf<PatientResponse?>(value = null)
     var jwtToken by mutableStateOf<String?>(value = null)
+    var chatHistory = mutableStateListOf<ChatMessage>()
 
     fun init(context: Context) {
         val p = context.getSharedPreferences("dental_prefs_v2", Context.MODE_PRIVATE)
@@ -27,7 +28,6 @@ object AppSettings {
         isDarkMode = p.getBoolean("dark_mode", false)
         currentLanguage = p.getString("lang", "en") ?: "en"
         jwtToken = p.getString("jwt_token", null)
-        
         val patientJson = p.getString("patient_data", null)
         if (patientJson != null) {
             try {
@@ -41,12 +41,29 @@ object AppSettings {
                 loggedInPatient = null
             }
         }
+
+        val chatJson = p.getString("chat_history", null)
+        if (chatJson != null) {
+            try {
+                val type = object : TypeToken<List<ChatMessage>>() {}.type
+                val history: List<ChatMessage> = gson.fromJson(chatJson, type)
+                chatHistory.clear()
+                chatHistory.addAll(history)
+            } catch (_: Exception) {}
+        }
     }
 
     fun saveToken(token: String?) {
         jwtToken = token
         prefs?.edit()?.apply {
             putString("jwt_token", token)
+            apply()
+        }
+    }
+
+    fun saveChatHistory() {
+        prefs?.edit()?.apply {
+            putString("chat_history", gson.toJson(chatHistory.toList()))
             apply()
         }
     }

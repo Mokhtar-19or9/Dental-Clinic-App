@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Dental Clinic</string>
+    <string name="app_name">Smile Scan</string>
     <string name="home">Home</string>
     <string name="appointments">Appointments</string>
     <string name="xray">X-Ray</string>
@@ -121,4 +121,34 @@
     <string name="asthma">Asthma</string>
     <string name="penicillin">Penicillin</string>
     <string name="medical_history_summary">Medical History Summary</string>
+    <string name="birthday">Birthday</string>
+    <string name="chronic_diseases">Chronic Diseases</string>
+    <string name="medicines">Medicines</string>
+    <string name="surgeries">Surgeries</string>
+    <string name="save_changes">Save Changes</string>
+    <string name="saving">Saving...</string>
+    <string name="logout">Logout</string>
+    <string name="update_profile">Update Profile</string>
+    <string name="profile_updated">Profile updated successfully</string>
+    <string name="years">years</string>
+    <string name="view_your_scans">View your X-Ray scans and AI analysis</string>
+    <string name="xray_scans">X-Ray Scans</string>
+    <string name="no_xray_images">No X-Ray images available</string>
+    <string name="check_back">Check back after your next appointment</string>
+    <string name="xray_scan">X-Ray Scan</string>
+    <string name="findings">Findings</string>
+    <string name="ai_analysis">AI Analysis</string>
+    <string name="close">Close</string>
+    <string name="no_records_yet">No medical records yet</string>
+    <string name="patient_information">Patient Information</string>
+    <string name="name_label">Name</string>
+    <string name="conditions">Conditions</string>
+    <string name="xrays">X-Rays</string>
+    <string name="diagnoses">Diagnoses</string>
+    <string name="records_title">Records</string>
+    <string name="scan_image">Scan Image</string>
+    <string name="diagnosis_and_findings">Diagnosis &amp; Findings</string>
+    <string name="ai_analysis_report">AI Analysis Report</string>
+    <string name="no_diagnosis_reports">No Diagnosis Reports</string>
+    <string name="no_reports_desc">Your doctor hasn\'t published any treatment reports yet.</string>
 </resources>

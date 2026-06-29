@@ -14,6 +14,9 @@ interface SmartCareService {
     @POST("api/v1/Patients/login")
     suspend fun patientLogin(@Body request: UserLoginRequest): Response<ResponseBody>
 
+    @POST("api/v1/Patients/login")
+    suspend fun patientLoginRaw(@Body request: Map<String, String>): Response<ResponseBody>
+
     @POST("api/v1/Account/Create")
     suspend fun createAccount(@Body request: UserCreateRequest): Response<UserResponse>
 
@@ -29,16 +32,21 @@ interface SmartCareService {
     @GET("api/v1/Ray/GetAll")
     suspend fun getAllRays(): Response<List<RayResponse>>
 
-    @GET("api/v1/Ray/GetByPatient/{id}")
-    suspend fun getRaysByPatient(@Path("id") patientId: String): Response<List<RayResponse>>
+    @GET("api/v1/Ray/GetByPatient/{patientId}")
+    suspend fun getRaysByPatient(@Path("patientId") patientId: String): Response<List<RayResponse>>
+
+    @GET("api/v1/Patients/{patientId}")
+    suspend fun getPatientById(@Path("patientId") patientId: String): Response<PatientResponse>
+
+    @PUT("api/v1/Patients/update")
+    suspend fun updatePatient(@Body request: PatientUpdateRequest): Response<PatientResponse>
 
     @GET("api/v1/Chat/History")
     suspend fun getChatHistory(@Query("id") conversationId: String, @Query("limit") limit: Int = 20): Response<List<ChatMessageDto>>
-}
 
-data class ChatMessageDto(
-    val id: String,
-    val text: String,
-    val senderId: String,
-    val createdAt: String
-)
+    @POST("api/v1/Chat/CreateConversation")
+    suspend fun createConversation(@Body request: Map<String, String>): Response<ResponseBody>
+
+    @POST("api/v1/Chat/SendMessage")
+    suspend fun sendMessage(@Body request: Map<String, String>): Response<ResponseBody>
+}

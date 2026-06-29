@@ -15,7 +15,7 @@ import com.example.dentalclinic.R
 import com.example.dentalclinic.data.AppSettings
 import com.example.dentalclinic.ui.components.DentalCard
 import com.example.dentalclinic.ui.components.IconBubble
-import com.example.dentalclinic.ui.theme.DentalTeal
+import com.example.dentalclinic.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -23,6 +23,7 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
     onNavigateToNotifications: () -> Unit
 ) {
+    val isAr = AppSettings.currentLanguage == "ar"
     var showPrivacySheet by remember { mutableStateOf(false) }
     var showPaymentSheet by remember { mutableStateOf(false) }
     var showSoonDialog by remember { mutableStateOf(false) }
@@ -40,7 +41,7 @@ fun SettingsScreen(
                 .padding(20.dp)
         ) {
             Text(
-                stringResource(R.string.settings),
+                if (isAr) "الإعدادات" else stringResource(R.string.settings),
                 fontWeight = FontWeight.Bold,
                 color = DentalTeal,
                 style = MaterialTheme.typography.headlineMedium
@@ -48,8 +49,8 @@ fun SettingsScreen(
             Spacer(Modifier.height(18.dp))
 
             SettingRow(
-                stringResource(R.string.dark_mode),
-                if (AppSettings.isDarkMode) stringResource(R.string.enabled) else stringResource(R.string.disabled),
+                if (isAr) "الوضع الداكن" else stringResource(R.string.dark_mode),
+                if (AppSettings.isDarkMode) (if (isAr) "مفعل" else stringResource(R.string.enabled)) else (if (isAr) "معطل" else stringResource(R.string.disabled)),
                 "D",
                 trailing = {
                     Switch(
@@ -60,7 +61,7 @@ fun SettingsScreen(
             )
 
             SettingRow(
-                stringResource(R.string.language),
+                if (isAr) "اللغة" else stringResource(R.string.language),
                 if (AppSettings.currentLanguage == "en") stringResource(R.string.english) else stringResource(R.string.arabic),
                 "L",
                 trailing = {
@@ -76,41 +77,45 @@ fun SettingsScreen(
             )
 
             SettingRow(
-                stringResource(R.string.notifications), 
-                stringResource(R.string.appointment_alerts), 
+                if (isAr) "التنبيهات" else stringResource(R.string.notifications), 
+                if (isAr) "تنبيهات المواعيد" else stringResource(R.string.appointment_alerts), 
                 "N",
                 onClick = onNavigateToNotifications
             )
             
             SettingRow(
-                stringResource(R.string.privacy), 
-                "Manage your data", 
+                if (isAr) "الخصوصية" else stringResource(R.string.privacy), 
+                if (isAr) "إدارة بياناتك" else "Manage your data", 
                 "P",
                 onClick = { showPrivacySheet = true }
             )
             
             SettingRow(
-                stringResource(R.string.payment_methods), 
-                "Cards and Wallets", 
+                if (isAr) "طرق الدفع" else stringResource(R.string.payment_methods), 
+                if (isAr) "البطاقات والمحافظ" else "Cards and Wallets", 
                 "$",
                 onClick = { showPaymentSheet = true }
             )
             
-            SettingRow(stringResource(R.string.support), stringResource(R.string.clinic_help), "?")
+            SettingRow(
+                if (isAr) "الدعم" else stringResource(R.string.support), 
+                if (isAr) "مساعدة العيادة" else stringResource(R.string.clinic_help), 
+                "?"
+            )
         }
     }
 
     if (showPrivacySheet) {
         ModalBottomSheet(onDismissRequest = { showPrivacySheet = false }) {
             Column(modifier = Modifier.fillMaxWidth().padding(24.dp).padding(bottom = 24.dp)) {
-                Text(stringResource(R.string.manage_your_data), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text(if (isAr) "إدارة بياناتك" else stringResource(R.string.manage_your_data), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(16.dp))
                 Button(onClick = { showPrivacySheet = false }, modifier = Modifier.fillMaxWidth()) {
-                    Text(stringResource(R.string.request_data_export))
+                    Text(if (isAr) "طلب تصدير البيانات" else stringResource(R.string.request_data_export))
                 }
                 Spacer(Modifier.height(8.dp))
                 OutlinedButton(onClick = { showPrivacySheet = false }, modifier = Modifier.fillMaxWidth()) {
-                    Text(stringResource(R.string.delete_account))
+                    Text(if (isAr) "حذف الحساب" else stringResource(R.string.delete_account))
                 }
             }
         }
@@ -119,17 +124,17 @@ fun SettingsScreen(
     if (showPaymentSheet) {
         ModalBottomSheet(onDismissRequest = { showPaymentSheet = false }) {
             Column(modifier = Modifier.fillMaxWidth().padding(24.dp).padding(bottom = 24.dp)) {
-                Text(stringResource(R.string.select_payment_method), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text(if (isAr) "اختر طريقة الدفع" else stringResource(R.string.select_payment_method), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(16.dp))
-                PaymentOption(stringResource(R.string.credit_card)) { 
+                PaymentOption(if (isAr) "بطاقة ائتمان" else stringResource(R.string.credit_card)) { 
                     showPaymentSheet = false
                     showSoonDialog = true
                 }
-                PaymentOption(stringResource(R.string.paypal)) { 
+                PaymentOption(if (isAr) "بايبال" else stringResource(R.string.paypal)) { 
                     showPaymentSheet = false
                     showSoonDialog = true
                 }
-                PaymentOption(stringResource(R.string.google_pay)) { 
+                PaymentOption(if (isAr) "جوجل باي" else stringResource(R.string.google_pay)) { 
                     showPaymentSheet = false
                     showSoonDialog = true
                 }
@@ -142,10 +147,10 @@ fun SettingsScreen(
             onDismissRequest = { showSoonDialog = false },
             confirmButton = {
                 TextButton(onClick = { showSoonDialog = false }) {
-                    Text("OK")
+                    Text(if (isAr) "حسناً" else "OK")
                 }
             },
-            title = { Text("Information") },
+            title = { Text(if (isAr) "معلومات" else "Information") },
             text = { Text(soonMsg) },
             shape = RoundedCornerShape(20.dp),
             containerColor = MaterialTheme.colorScheme.surface,

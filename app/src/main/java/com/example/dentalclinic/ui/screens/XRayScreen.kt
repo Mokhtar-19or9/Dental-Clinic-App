@@ -1,132 +1,243 @@
 package com.example.dentalclinic.ui.screens
 
-import androidx.compose.foundation.Canvas
+import android.graphics.BitmapFactory
+import android.util.Base64
+import android.util.Log
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.BrokenImage
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.ZoomIn
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil3.compose.AsyncImage
 import com.example.dentalclinic.R
-import com.example.dentalclinic.data.fake.FakeDentalData
-import com.example.dentalclinic.ui.components.DentalCard
-import com.example.dentalclinic.ui.components.IconBubble
-import com.example.dentalclinic.ui.components.SectionHeader
+import com.example.dentalclinic.data.AppSettings
+import com.example.dentalclinic.data.api.RayResponse
+import com.example.dentalclinic.data.api.RetrofitClient
+import com.example.dentalclinic.ui.components.*
 import com.example.dentalclinic.ui.theme.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @Composable
-fun XRayScreen(modifier: Modifier = Modifier) {
+fun XRayScreen(modifier: Modifier = Modifier, onBack: () -> Unit = {}) {
+    val patientId = AppSettings.loggedInPatient?.id
+    val isAr = AppSettings.currentLanguage == "ar"
+    var rays by remember { mutableStateOf<List<RayResponse>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
+    var errorMsg by remember { mutableStateOf<String?>(null) }
+    var selectedImage by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(patientId) {
+        isLoading = true
+        try {
+            if (!patientId.isNullOrBlank()) {
+                val response = RetrofitClient.service.getRaysByPatient(patientId)
+                if (response.isSuccessful) {
+                    rays = response.body() ?: emptyList()
+                } else {
+                    errorMsg = if (isAr) "فشل في جلب البيانات: ${response.code()}" else "Failed to fetch: ${response.code()}"
+                }
+            } else {
+                errorMsg = if (isAr) "لم يتم العثور على معرف المريض. يرجى تسجيل الخروج والدخول مجدداً." else "Patient ID not found. Please logout and login again."
+            }
+        } catch (_: Exception) {
+            errorMsg = if (isAr) "خطأ في الاتصال بالسيرفر" else "Server connection error"
+        } finally {
+            isLoading = false
+        }
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(DentalBackground)
             .verticalScroll(rememberScrollState())
-            .padding(20.dp)
     ) {
-        Text(stringResource(R.string.xray_records), fontWeight = FontWeight.Bold, color = DentalTeal, style = MaterialTheme.typography.headlineMedium)
-        Text(stringResource(R.string.ai_assisted_analysis), color = DentalMuted)
-        Spacer(Modifier.height(24.dp))
-
-        Text(stringResource(R.string.latest_scan_preview), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(bottom = 12.dp))
-        
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(220.dp)
-                .clip(RoundedCornerShape(24.dp))
-                .background(Brush.verticalGradient(listOf(Color(0xFF102A35), Color(0xFF08151A))))
+                .background(DentalTealDark)
+                .padding(horizontal = 20.dp, vertical = 20.dp)
         ) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val w = size.width
-                val h = size.height
-                
-                // Draw Grid lines
-                for (i in 1..10) {
-                    drawLine(Color.White.copy(alpha = 0.05f), Offset(w * i / 10f, 0f), Offset(w * i / 10f, h))
-                    drawLine(Color.White.copy(alpha = 0.05f), Offset(0f, h * i / 10f), Offset(w, h * i / 10f))
-                }
-
-                // Draw Tooth silhouettes
-                repeat(6) { index ->
-                    val centerX = w * (index + 1) / 7f
-                    val centerY = h / 2f
-                    
-                    val toothPath = Path().apply {
-                        moveTo(centerX - 25f, centerY - 35f)
-                        quadraticTo(centerX, centerY - 55f, centerX + 25f, centerY - 35f)
-                        lineTo(centerX + 20f, centerY + 25f)
-                        quadraticTo(centerX, centerY + 45f, centerX - 20f, centerY + 25f)
-                        close()
-                    }
-                    
-                    drawPath(
-                        path = toothPath,
-                        color = if (index == 2) Color(0xFFFFD166).copy(alpha = 0.8f) else Color.White.copy(alpha = 0.4f)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = Color.White
                     )
                 }
-
-                // Scanning line
-                drawLine(
-                    color = DentalTeal,
-                    start = Offset(0f, h * 0.4f),
-                    end = Offset(w, h * 0.4f),
-                    strokeWidth = 2.dp.toPx()
-                )
-                
-                // Highlight Circle on a specific tooth
-                drawCircle(
-                    color = Color(0xFFEF4444).copy(alpha = 0.6f),
-                    radius = 40f,
-                    center = Offset(w * 3 / 7f, h / 2f),
-                    style = Stroke(width = 2.dp.toPx())
-                )
-            }
-            
-            // Labels in X-ray
-            Box(modifier = Modifier.padding(16.dp).align(Alignment.TopEnd)) {
-                Text("AI ANALYZING...", color = DentalTeal, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-            }
-            
-            Box(modifier = Modifier.padding(16.dp).align(Alignment.BottomStart)) {
+                Spacer(Modifier.width(8.dp))
                 Column {
-                    Text("RESOLUTION: 4K", color = Color.White.copy(alpha = 0.6f), fontSize = 10.sp)
-                    Text("SCAN ID: #8821-X", color = Color.White.copy(alpha = 0.6f), fontSize = 10.sp)
+                    Text(
+                        if (isAr) "سجلات الأشعة" else stringResource(R.string.xray_records),
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        style = MaterialTheme.typography.headlineSmall
+                    )
+                    Text(
+                        if (isAr) "عرض صور الأشعة والتحليل الذكي" else "View your X-Ray scans and AI analysis",
+                        color = Color.White.copy(alpha = 0.7f),
+                        fontSize = 14.sp
+                    )
                 }
             }
         }
 
-        Spacer(Modifier.height(32.dp))
-        SectionHeader(stringResource(R.string.records))
-        Spacer(Modifier.height(12.dp))
+        Column(modifier = Modifier.padding(16.dp)) {
+            Spacer(Modifier.height(8.dp))
+            SectionHeader(if (isAr) "صور الأشعة" else "X-Ray Scans")
 
-        FakeDentalData.xRays.forEach { record ->
-            DentalCard(Modifier.fillMaxWidth()) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconBubble("X", background = DentalBlueSoft)
-                    Spacer(Modifier.width(16.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(record.title, fontWeight = FontWeight.Bold)
-                        Text(record.date, color = DentalMuted, style = MaterialTheme.typography.bodySmall)
+            if (isLoading) {
+                Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = DentalTeal)
+                }
+            } else if (errorMsg != null) {
+                Spacer(Modifier.height(20.dp))
+                DentalCard(Modifier.fillMaxWidth()) {
+                    Text(
+                        errorMsg ?: "",
+                        color = DentalError,
+                        modifier = Modifier.padding(16.dp),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                }
+            } else if (rays.isEmpty()) {
+                Spacer(Modifier.height(40.dp))
+                DentalCard(Modifier.fillMaxWidth()) {
+                    Column(
+                        Modifier.fillMaxWidth().padding(vertical = 24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            Icons.Filled.Image,
+                            contentDescription = null,
+                            tint = DentalMuted,
+                            modifier = Modifier.size(48.dp)
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        Text(
+                            if (isAr) "لا توجد صور أشعة متاحة حالياً" else "No X-Ray images available yet",
+                            fontWeight = FontWeight.Medium,
+                            color = DentalMuted
+                        )
+                        Text(
+                            if (isAr) "ستظهر صورك هنا بعد موعدك الأول." else "Your scans will appear here after your first appointment.",
+                            color = DentalMuted.copy(alpha = 0.6f),
+                            fontSize = 13.sp,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
                     }
                 }
-                Spacer(Modifier.height(12.dp))
-                Text(record.finding, color = DentalMuted, fontSize = 14.sp)
+            } else {
+                rays.forEach { record ->
+                    DentalCard(Modifier.fillMaxWidth()) {
+                        Column {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                IconBubble("XR", background = DentalBlueSoft)
+                                Spacer(Modifier.width(12.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(record.name ?: (if (isAr) "صورة أشعة" else "X-Ray Scan"), fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                    Text(record.createdAt?.substringBefore("T") ?: "", color = DentalMuted, fontSize = 12.sp)
+                                }
+                            }
+
+                            if (!record.image.isNullOrBlank()) {
+                                Spacer(Modifier.height(12.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .clickable { selectedImage = record.image }
+                                ) {
+                                    Log.d("RayImage", "image=${record.image?.take(200)} len=${record.image?.length}")
+                                    RayImage(record.image)
+                                    Box(
+                                        modifier = Modifier
+                                            .align(Alignment.TopEnd)
+                                            .padding(8.dp)
+                                            .clip(RoundedCornerShape(50))
+                                            .background(Color.Black.copy(alpha = 0.5f))
+                                            .padding(6.dp)
+                                    ) {
+                                        Icon(Icons.Filled.ZoomIn, contentDescription = "Zoom", tint = Color.White, modifier = Modifier.size(18.dp))
+                                    }
+                                }
+                            }
+
+                            if (!record.description.isNullOrBlank()) {
+                                Spacer(Modifier.height(8.dp))
+                                Text(
+                                    "${if (isAr) "النتائج" else "Findings"}: ${record.description}",
+                                    color = DentalMuted,
+                                    fontSize = 13.sp
+                                )
+                            }
+
+                            val analysisImg = extractAnalysisImage(record.aiAnalysisJson)
+                            if (analysisImg != null) {
+                                Spacer(Modifier.height(12.dp))
+                                Text(if (isAr) "تحليل الذكاء الاصطناعي" else "AI Analysis", fontWeight = FontWeight.SemiBold, color = DentalTeal, fontSize = 14.sp)
+                                Spacer(Modifier.height(6.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .clickable { selectedImage = analysisImg }
+                                ) {
+                                    RayImage(analysisImg)
+                                    Box(
+                                        modifier = Modifier
+                                            .align(Alignment.TopEnd)
+                                            .padding(8.dp)
+                                            .clip(RoundedCornerShape(50))
+                                            .background(Color.Black.copy(alpha = 0.5f))
+                                            .padding(6.dp)
+                                    ) {
+                                        Icon(Icons.Filled.ZoomIn, contentDescription = "Zoom", tint = Color.White, modifier = Modifier.size(18.dp))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(12.dp))
+                }
             }
-            Spacer(Modifier.height(12.dp))
         }
+    }
+
+    if (selectedImage != null) {
+        AlertDialog(
+            onDismissRequest = { selectedImage = null },
+            title = {},
+            text = {
+                RayImage(selectedImage)
+            },
+            confirmButton = {
+                TextButton(onClick = { selectedImage = null }) {
+                    Text(if (isAr) "إغلاق" else "Close", color = DentalTeal)
+                }
+            }
+        )
     }
 }

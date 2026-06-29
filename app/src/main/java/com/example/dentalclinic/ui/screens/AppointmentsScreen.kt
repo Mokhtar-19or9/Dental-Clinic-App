@@ -12,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -22,14 +23,24 @@ import com.example.dentalclinic.data.fake.FakeDentalData
 import com.example.dentalclinic.data.model.Appointment
 import com.example.dentalclinic.ui.components.*
 import com.example.dentalclinic.ui.theme.*
+import java.text.SimpleDateFormat
+import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppointmentsScreen(modifier: Modifier = Modifier) {
+    val isAr = AppSettings.currentLanguage == "ar"
     var showBookSheet by remember { mutableStateOf(value = false) }
     var selectedCategory by remember { mutableStateOf<String?>(null) }
     var selectedDate by remember { mutableStateOf<String?>(null) }
     val sheetState = rememberModalBottomSheetState()
+    
+    // Dynamic Date Logic
+    val calendar = Calendar.getInstance()
+    val locale = if (isAr) Locale("ar") else Locale.ENGLISH
+    val todayFormatter = SimpleDateFormat("EEE, MMM d", locale)
+    val dayNameFormatter = SimpleDateFormat("EEE", locale)
+    val dayNumFormatter = SimpleDateFormat("d", locale)
 
     Column(
         modifier = modifier
@@ -38,36 +49,51 @@ fun AppointmentsScreen(modifier: Modifier = Modifier) {
             .verticalScroll(rememberScrollState())
             .padding(20.dp),
     ) {
-        Text(stringResource(R.string.appointments), fontWeight = FontWeight.Bold, color = DentalTeal)
-        Text(stringResource(R.string.calendar_view), color = DentalMuted)
+        Text(if (isAr) "المواعيد" else stringResource(R.string.appointments), fontWeight = FontWeight.Bold, color = DentalTeal)
+        Text(if (isAr) "عرض التقويم" else stringResource(R.string.calendar_view), color = DentalMuted)
         Spacer(Modifier.height(18.dp))
 
         DentalCard(Modifier.fillMaxWidth()) {
             Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                listOf(
-                    stringResource(R.string.mon),
-                    stringResource(R.string.tue),
-                    stringResource(R.string.wed),
-                    stringResource(R.string.thu),
-                    stringResource(R.string.fri),
-                ).forEachIndexed { index, day ->
+                // Generate next 5 days dynamically
+                for (i in 0 until 5) {
+                    val tempCal = calendar.clone() as Calendar
+                    tempCal.add(Calendar.DAY_OF_YEAR, i)
+                    val dayName = dayNameFormatter.format(tempCal.time)
+                    val dayNum = dayNumFormatter.format(tempCal.time)
+                    
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(day, color = DentalMuted)
-                        AssistChip(onClick = {}, label = { Text((24 + index).toString()) })
+                        Text(dayName, color = if (i == 0) DentalTeal else DentalMuted, fontWeight = if (i == 0) FontWeight.Bold else FontWeight.Normal)
+                        AssistChip(
+                            onClick = {}, 
+                            label = { Text(dayNum) },
+                            colors = AssistChipDefaults.assistChipColors(
+                                containerColor = if (i == 0) DentalTeal.copy(alpha = 0.1f) else Color.Transparent
+                            )
+                        )
                     }
                 }
             }
         }
 
         Spacer(Modifier.height(22.dp))
-        SectionHeader(stringResource(R.string.upcoming))
+        SectionHeader(if (isAr) "القادمة" else stringResource(R.string.upcoming))
         Spacer(Modifier.height(10.dp))
+        
+        // Display current booked appointment if exists
+        val currentBooking = AppSettings.bookedAppointment
+        if (currentBooking != null) {
+            AppointmentRow(currentBooking)
+            Spacer(Modifier.height(12.dp))
+        }
+
         FakeDentalData.appointments.forEach { appointment ->
             AppointmentRow(appointment)
             Spacer(Modifier.height(12.dp))
         }
+        
         PrimaryDentalButton(
-            text = stringResource(R.string.book_new_appointment),
+            text = if (isAr) "حجز موعد جديد" else stringResource(R.string.book_new_appointment),
             modifier = Modifier.fillMaxWidth()
         ) { 
             selectedCategory = null
@@ -88,65 +114,66 @@ fun AppointmentsScreen(modifier: Modifier = Modifier) {
             ) {
                 if (selectedCategory == null) {
                     Text(
-                        stringResource(R.string.select_service),
+                        if (isAr) "اختر الخدمة" else stringResource(R.string.select_service),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         color = DentalTeal
                     )
                     Spacer(Modifier.height(16.dp))
                     
-                    ServiceOption(stringResource(R.string.routine_checkup), "🦷") { selectedCategory = "routine" }
-                    ServiceOption(stringResource(R.string.teeth_whitening), "✨") { selectedCategory = "whitening" }
-                    ServiceOption(stringResource(R.string.emergency), "🚨") { selectedCategory = "emergency" }
+                    ServiceOption(if (isAr) "فحص دوري" else stringResource(R.string.routine_checkup), "🦷") { selectedCategory = "routine" }
+                    ServiceOption(if (isAr) "تبييض الأسنان" else stringResource(R.string.teeth_whitening), "✨") { selectedCategory = "whitening" }
+                    ServiceOption(if (isAr) "حالة طارئة" else stringResource(R.string.emergency), "🚨") { selectedCategory = "emergency" }
                 } else if ((selectedDate == null) && (selectedCategory != "emergency")) {
                     Text(
-                        stringResource(R.string.select_day),
+                        if (isAr) "اختر اليوم" else stringResource(R.string.select_day),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         color = DentalTeal
                     )
                     Spacer(Modifier.height(16.dp))
                     
-                    val days = listOf(
-                        "${stringResource(R.string.mon)}, May 25",
-                        "${stringResource(R.string.tue)}, May 26",
-                        "${stringResource(R.string.wed)}, May 27",
-                        "${stringResource(R.string.thu)}, May 28",
-                        "${stringResource(R.string.fri)}, May 29"
-                    )
-                    
-                    days.forEach { day ->
-                        ServiceOption(day, "📅") { selectedDate = day }
+                    // Dynamic dates for selection
+                    for (i in 0 until 5) {
+                        val tempCal = calendar.clone() as Calendar
+                        tempCal.add(Calendar.DAY_OF_YEAR, i)
+                        val dateStr = todayFormatter.format(tempCal.time)
+                        ServiceOption(dateStr, "📅") { selectedDate = dateStr }
                     }
                 } else {
                     Text(
-                        stringResource(R.string.select_time),
+                        if (isAr) "اختر الوقت" else stringResource(R.string.select_time),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         color = DentalTeal
                     )
                     Spacer(Modifier.height(16.dp))
 
-                    val times = listOf(
+                    val times = if (isAr) listOf(
+                        "09:00 ص", "10:00 ص", "11:00 ص",
+                        "12:00 م", "01:00 م", "02:00 م",
+                        "03:00 م", "04:00 م", "05:00 م"
+                    ) else listOf(
                         "09:00 AM", "10:00 AM", "11:00 AM",
                         "12:00 PM", "01:00 PM", "02:00 PM",
                         "03:00 PM", "04:00 PM", "05:00 PM"
                     )
                     
-                    val routineTitle = stringResource(R.string.routine_checkup)
-                    val whiteningTitle = stringResource(R.string.teeth_whitening)
-                    val emergencyTitle = stringResource(R.string.emergency)
+                    val routineTitle = if (isAr) "فحص دوري" else stringResource(R.string.routine_checkup)
+                    val whiteningTitle = if (isAr) "تبييض الأسنان" else stringResource(R.string.teeth_whitening)
+                    val emergencyTitle = if (isAr) "حالة طارئة" else stringResource(R.string.emergency)
                     val serviceTitle = when(selectedCategory) {
                         "routine" -> routineTitle
                         "whitening" -> whiteningTitle
                         "emergency" -> emergencyTitle
-                        else -> "Dental Service"
+                        else -> (if (isAr) "خدمة الأسنان" else "Dental Service")
                     }
 
                     if (selectedCategory == "emergency") {
-                        Text(stringResource(R.string.doctor_phone), color = DentalTeal, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 8.dp))
-                        ServiceOption(stringResource(R.string.emergency_time), "🚑") { 
-                            bookAppointment(emergencyTitle, "Today", "ASAP")
+                        val todayStr = todayFormatter.format(calendar.time)
+                        Text(if (isAr) "هاتف الطبيب" else stringResource(R.string.doctor_phone), color = DentalTeal, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 8.dp))
+                        ServiceOption(if (isAr) "وقت الطوارئ" else stringResource(R.string.emergency_time), "🚑") { 
+                            bookAppointment(emergencyTitle, todayStr, if (isAr) "في أسرع وقت" else "ASAP")
                             showBookSheet = false 
                         }
                     } else {
@@ -160,7 +187,7 @@ fun AppointmentsScreen(modifier: Modifier = Modifier) {
                                 FilterChip(
                                     selected = false,
                                     onClick = {
-                                        bookAppointment(serviceTitle, selectedDate ?: "Today", time)
+                                        bookAppointment(serviceTitle, selectedDate ?: (if (isAr) "اليوم" else "Today"), time)
                                         showBookSheet = false
                                     },
                                     label = { Text(time, fontSize = 12.sp) },
@@ -180,7 +207,7 @@ fun AppointmentsScreen(modifier: Modifier = Modifier) {
                     onClick = { showBookSheet = false },
                     modifier = Modifier.align(Alignment.End)
                 ) {
-                    Text(stringResource(R.string.cancel))
+                    Text(if (isAr) "إلغاء" else stringResource(R.string.cancel))
                 }
             }
         }

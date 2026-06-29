@@ -13,23 +13,37 @@ import androidx.compose.ui.unit.dp
 private val LightDentalColorScheme = lightColorScheme(
     primary = DentalTeal,
     onPrimary = Color.White,
+    primaryContainer = DentalMint,
     secondary = DentalCyan,
+    onSecondary = Color.White,
+    secondaryContainer = DentalBlueSoft,
+    tertiary = DentalWarning,
     background = DentalBackground,
     onBackground = DentalText,
     surface = DentalSurface,
     onSurface = DentalText,
-    outline = DentalLine
+    surfaceVariant = DentalMint.copy(alpha = 0.3f),
+    outline = DentalLine,
+    outlineVariant = DentalLine.copy(alpha = 0.5f),
+    error = DentalError
 )
 
 private val DarkDentalColorScheme = darkColorScheme(
     primary = DentalCyan,
     onPrimary = Color.Black,
+    primaryContainer = DentalTealDark.copy(alpha = 0.4f),
     secondary = DentalTeal,
+    onSecondary = Color.White,
+    secondaryContainer = DentalTealDark.copy(alpha = 0.3f),
+    tertiary = DentalWarning,
     background = DentalBackgroundDark,
     onBackground = DentalTextDark,
     surface = DentalSurfaceDark,
     onSurface = DentalTextDark,
-    outline = DentalLineDark
+    surfaceVariant = DentalSurfaceDark.copy(alpha = 0.8f),
+    outline = DentalLineDark,
+    outlineVariant = DentalLineDark.copy(alpha = 0.5f),
+    error = Color(0xFFEF9A9A)
 )
 
 private val DentalShapes = Shapes(

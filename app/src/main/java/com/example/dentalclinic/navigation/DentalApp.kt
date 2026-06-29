@@ -126,7 +126,9 @@ fun DentalApp() {
             }
             
             composable(DentalRoute.Appointments.name) { AppointmentsScreen(modifier) }
-            composable(DentalRoute.XRay.name) { XRayScreen(modifier) }
+            composable(DentalRoute.XRay.name) { 
+                XRayScreen(modifier, onBack = { navController.popBackStack() }) 
+            }
             composable(DentalRoute.Profile.name) { 
                 ProfileScreen(
                     modifier = modifier,
@@ -166,7 +168,15 @@ fun DentalApp() {
             }
 
             composable(DentalRoute.Chat.name) { 
-                ChatScreen(modifier, onBack = { navController.popBackStack() }) 
+                ChatScreen(
+                    modifier = modifier,
+                    onBack = { navController.popBackStack() },
+                    onNavigateToAppointments = { navController.navigate(DentalRoute.Appointments.name) },
+                    onNavigateToXRay = { navController.navigate(DentalRoute.XRay.name) },
+                    onNavigateToDiagnosis = { navController.navigate(DentalRoute.Diagnosis.name) },
+                    onNavigateToHistory = { navController.navigate(DentalRoute.History.name) },
+                    onNavigateToSettings = { navController.navigate(DentalRoute.Settings.name) }
+                )
             }
         }
     }
