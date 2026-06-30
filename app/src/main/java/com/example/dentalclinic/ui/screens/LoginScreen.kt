@@ -29,7 +29,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -136,23 +135,11 @@ fun LoginScreen(
                                 .padding(32.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(80.dp)
-                                    .clip(RoundedCornerShape(20.dp))
-                                    .background(
-                                        Brush.linearGradient(
-                                            colors = listOf(DentalTealDark, DentalTeal)
-                                        )
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Image(
-                                    painter = painterResource(id = R.drawable.image_logo),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(48.dp)
-                                )
-                            }
+                            Image(
+                                painter = painterResource(id = R.drawable.image_logo),
+                                contentDescription = null,
+                                modifier = Modifier.size(80.dp)
+                            )
 
                             Spacer(Modifier.height(24.dp))
 

@@ -42,7 +42,6 @@ private val allSections = listOf(
     SuggestedSection("X-Ray", "الأشعة", "🦷", "xray"),
     SuggestedSection("Diagnosis", "التشخيص", "📋", "diagnosis"),
     SuggestedSection("History", "السجل", "📁", "history"),
-    SuggestedSection("Settings", "الإعدادات", "⚙️", "settings")
 )
 
 private fun generateSmartResponse(userMessage: String): String {
